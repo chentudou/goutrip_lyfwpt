@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+    let arr=[1,2,3,4,5];
+	arr1=arr.splice(0,arr.length-1)
+	console.log('arr.splice(1,arr.length-1)',arr1,arr);
+	function designSizeDate(initDate, l) {
+        /* 日期转时间戳（1，避免跨月计算，2，可加减） */
+        let timeStamp = new Date(initDate).getTime();
+        let days = Number(l); /* 生成几天的日期数组（最小大于2） */
+        var timeArr = [initDate];
+        for (var i = 0; i < days - 1; i++) { //最终结果是以initDate为首,所以减少一天的插入
+            timeStamp += (1000 * 60 * 60 * 24);
+            timeArr.push(timeStamp);
+        }
+    }
+        return timeArr;
+        designSizeDate(1520870400000,10)
+</script>
+</html>

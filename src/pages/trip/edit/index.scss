@@ -1,0 +1,175 @@
+@import "../../../assets/css/color.scss";
+.tripEdit{
+    width: 100%;
+    height: 100%;
+    background:  #fff;
+    position: absolute;
+    overflow-y: hidden;
+    min-width: 1280px;
+}
+.ghost{
+    opacity: 1;background: #e5e5e5;
+}
+//---------------------------------------------------------左侧天数列表的收起和下拉动画
+
+.dayItemUp-enter-active, .dayItemUp-leave-active {
+    transition: opacity .5s;
+}
+.dayItemUp-enter, .dayItemUp-leave-to /* .fade-leave-active below version 2.1.8 */ {
+    opacity: 0;opacity: 0;
+}
+// ----------------------------------------------------------- 客服
+.customerService{
+    width: 40px;
+    height: 40px;
+    position: fixed;
+    right: 30px;
+    bottom: 70px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px $_colorMain;
+   // background: $_colorMain url("images/icon_customerService.png") center no-repeat;
+    background-size: 24px 22px;
+}
+//---------------------------------------------------------------------------------左侧和中间是一起的
+.leftAndcenter{
+    width: 68.75%;
+    min-width: 880px;
+    height: 100%;
+    position: relative;
+}
+.itemWrap{
+    max-height: 100%;background:rgba(255,255,255,.85)
+}
+//--------------------------------------------------------------------------------------头部的样式
+.tripEditHeader{
+    background: #fff;
+    width: 100%;
+    height: 60px;
+    color: #333;
+    -webkit-box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0px 10px rgba(0, 0, 0, 0.5);
+    padding: 0 15px 0 30px;
+    margin-bottom: 5px;
+}
+.tripEditCon{
+    width: 100%;
+    height: 100%;
+    //padding-top: 60px;
+}
+// 分享的弹出框样式
+.sharePopover{
+    padding: 10px 10px 0px 10px;
+    font-size: 12px;
+    color: $_fond6;
+    .sharePopoverQRcode{
+        width: 67px;
+        height: 67px;
+    }
+    .sharePopoverLine{
+        margin: 5px 20px;
+        width: 1px;
+        height: 57px;
+        background: $_bacgroundM;
+    }
+    .sharePopoverText{
+        padding: 5px 0;
+        >div{
+            text-indent: 30px;
+            line-height: 20px;
+        }
+    }
+    .sharePopoverWeibo{
+       // background: url("../images/icon_shareWeibo.png") left center no-repeat;
+        background-size: 20px 20px;
+        margin-bottom: 15px;
+    }
+    .sharePopoverHttp{
+       // background: url("../images/icon_shareHttp.png") left center no-repeat;
+        background-size: 20px 20px;
+    }
+    .sharePopoverBottom{
+        width: 100%;
+        text-align: center;
+        margin-top: 12px;
+    }
+}
+//常见问题的dialog样式
+.helpCenterDialogContent{
+    font-size: 14px;
+    color: $_fond6;
+    .issueItem{
+        width: 33.33333%;
+        float: left;
+    }
+    .useGuide{
+        margin-top: 30px;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+        border-bottom: 1px solid $_bacgroundM;
+        span{
+            color: $_colorMain;
+        }
+    }
+    .suggest{
+        width: 100%;
+        padding: 20px;
+        height: 126px;
+        background: #f1f1f1;
+        margin-bottom: 10px;
+        margin-top: 10px;
+        textarea{
+            width: 100%;
+            height: 100%;
+            background: #f1f1f1;
+            border: none;
+            resize: none;
+            font-size: 14px;
+            color: $_fond9;
+        }
+        textarea::-webkit-input-placeholder{
+            font-size: 14px;
+            color: $_fond9;
+        }
+    }
+    .issueSubmit{
+        text-align: right;
+        span{
+            display: inline-block;
+            width: 100px;
+            line-height: 40px;
+            background: $_colorMain;
+            color: $_fontf;
+            font-size: 16px;
+            text-align: center;
+        }
+    }
+}
+//---------------------------------------------------------------------------------------左侧的样式
+.dayItemWrap{
+    height: 100%;
+    width: 27.2%;
+    transition: width .1s;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-right: 1px solid $_borderMain;
+    z-index: 20;
+}
+//------------------------------------------------------------------------中间的地图和列表
+.centerCon{
+    width: 72.7%;
+    min-width: 640px;
+    border-right: 1px solid $_borderMain;
+}
+.centerConWrap{
+    height: 100%;
+    position: relative;
+    position: absolute;right: 0;
+}
+//-------------------------------------------------------------------------------------右侧的poi数据
+.rightpoi{
+    width: 31.25%;
+    min-width: 400px;
+    height: 100%;
+    position: relative;
+}

@@ -1,0 +1,46 @@
+.findPswd{
+    background-image: url(../images/findPasswordBg.jpg);
+    
+}
+.index-footer{
+    position: absolute;
+    bottom: 0;
+    background: rgba(0,0,0,.3);
+    width: 100%;
+    height: 80px;
+    padding-top: 20px;
+}
+/* 第一步找回密码*/
+.oneStep{
+	height:386px;
+} 
+.step {
+    opacity: 0.95;position: relative;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(255,255,255,0.20);
+    border-radius: 12px;
+    width: 433px;
+}
+.findPwTitle{
+	opacity:0.8;    text-align: center;padding: 26px 0;font-family:PingFangSC-Regular;font-size:24px;color:#00192d;
+}
+.content{
+    padding-top: 116px;
+
+}
+
+.findPwTitle {
+    opacity: 0.8;
+    text-align: center;
+    padding: 26px 0;
+    font-family: PingFangSC-Regular;
+    font-size: 24px;
+    color: #00192d;
+}
+.fade-enter-active, .fade-leave-active {
+    transition: opacity .5s;
+  }
+  .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+    opacity: 0;
+  }

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>行程预览</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/public.css">
+    <link rel="stylesheet" href="/static/css/tripBook.css">
+<!--     <link rel="stylesheet" href="/static/css/turnPage.css">
+ -->    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/qrcode.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/turnPage.min.js"></script>
+    <script src="/static/js/images.js"></script>
+    <script src="/static/js/jspdf.min.js"></script>
+    <script src="/static/js/jspdf.debug.js"></script>
+    <!-- <script src="/static/js/html2canvas.min.js"></script> -->
+    <script>
+            $(function () {
+                /* 翻页插件 */
+                $('#mybook').wowBook({
+                    width: 1200,
+                    height: 855,
+                    maxWidth: 1200,
+                    maxHeight: 855,
+                    centeredWhenClosed: true, //合上书居中
+                    hardcovers: false, //首尾页翻页效果 为true是硬页
+                    turnPageDuration: 400, //翻页持续时间
+                    pageNumbers: false, // 是否显示页码
+                    gutterShadow: true, //沟槽阴影
+                    foldGradient: true,
+                    lightbox: "#book3-trigger", // 加上可以缩放 什么鬼？？？
+                    controls: {
+                        next: "#next",
+                        back: "#back"
+                    }
+                });
+                $(window).resize();
+                
+    
+                $(".editBtn").on('click', function () {
+                    $(".models").slideDown();
+                });
+                $(".cancel").on('click', function () {
+                    $(".models").slideUp();
+                });
+                /* 分享弹框 */
+                $(".shareBtn").on('click', function () {
+                    $(".dialog").slideDown();
+                });
+                $(".share_cacel").on('click', function () {
+                    $(".dialog").slideUp();
+                });
+                /* 复制链接 */
+                var nowurl = document.URL;
+                var reg = /=\d{4}/;
+                var travelId = nowurl.match(reg)[0].slice(1);
+                document.getElementById('input_lian').value = nowurl;
+                
+                var moblieUrl='http://114.112.69.204:8080/#/?travelId='+ travelId;
+                // console.log(moblieUrl)
+                function copyUrl2(){
+
+                    var Url2=document.getElementById("input_lian");
+                    Url2.select(); // 选择对象
+                    document.execCommand("Copy"); // 执行浏览器复制命令
+                    alert("已复制好，可贴粘。");
+                }
+                $(".copy_btn").on('click', function () {
+                    copyUrl2()
+                })
+                /* 生成二维码 */
+                var qrcode = new QRCode(document.getElementById("qrcode"), {
+                    width : 100,
+                    height : 100
+                });
+                qrcode.makeCode(moblieUrl);
+                // 生成pdf文件
+                $('.export').on('click', function () {
+                    $('#mybook1').css('display',"block")
+                    $('.bookBox').css('display', 'none')
+                    //console.log(1234);
+                    downloadPdf()
+                })
+                
+                function downloadPdf(){    
+                    html2canvas($('#mybook1'), {  //appmsg 为选择要导出的页面id样式  
+                        onrendered: function(canvas) {
+                            var imgData = canvas.toDataURL('image/jpeg');
+                            var img = new Image();
+                            img.src = imgData;
+                        //根据图片的尺寸设置pdf的规格，要在图片加载成功时执行，之所以要*0.225是因为比例问题
+                            img.onload = function() {
+                            //此处需要注意，pdf横置和竖置两个属性，需要根据宽高的比例来调整，不然会出现显示不完全的问题
+                            if (this.width > this.height) {
+                                var doc = new jsPDF('l', 'mm', [this.width * 0.225, this.height * 0.225]);
+                            } else {
+                                var doc = new jsPDF('p', 'mm', [this.width * 0.225, this.height * 0.225]);
+                            }
+                            doc.addImage(imgData, 'jpeg', 0, 0, this.width * 0.225, this.height * 0.225);
+                            //根据下载保存成不同的文件名
+                            doc.save('report_pdf_' + new Date().getTime() + '.pdf');
+                            }
+                        },
+                        background: "#fff",
+                        //这里给生成的图片默认背景，不然的话，如果你的html根节点没设置背景的话，会用黑色填充。
+                    });  
+                } 
+                
+                //        页眉图标位置
+                $(".headerOne:odd").css("float", "right").attr("src", "/static/images/rightHeaderIcon.png");
+                $(".headerTwo:odd").css("float", "left");
+            
+                /* 立即执行请求 --- 获取说明信息 */
+                function ajaxEditInfo(){
+                   // console.log('1111')
+                    $.ajax({
+                        url:'/transfer/trip/preview/explain',
+                        method:'POST',
+                        data:{travelId:$("#travelId").val()},
+                        success:function(data){
+                            //console.log('data',data);
+                            renderExplain(data.item);
+                        }
+                    })
+                }
+                ajaxEditInfo();
+                /* 修改说明信息 */  
+                function editExplain(data){
+                    $.ajax({
+                        url:'/transfer/trip/preview/editExplain',
+                        method:'POST',
+                        data:data,
+                        success:function(data){
+                           // console.log('渲染说明信息123',data)
+                            renderExplain(data.item);
+                        }
+                    })
+                };
+                /* 渲染说明信息 */
+                
+                function renderExplain(data){
+                    console.log('渲染说明信息',data)
+                    var sex=['先生','女士'];
+                    $("#pdfId").val(data.id);
+                    $("#inClude pre").text()?$("#inClude pre").replaceWith(`<pre>${data.inClude}</pre>`):$("#inClude").append(`<pre>${data.inClude}</pre>`)
+                    $(".inClude").text(data.inClude)
+                    $("#outClude pre").text()?$("#outClude pre").replaceWith(`<pre>${data.outClude}</pre>`):$("#outClude").append(`<pre>${data.outClude}</pre>`)
+                    $(".outClude").text(data.outClude);
+                    $("#remark pre").text()?$("#remark pre").replaceWith(`<pre>${data.remark}</pre>`):$("#remark").append(`<pre>${data.remark}</pre>`)
+                    $(".remark").text(data.remark)
+                    $("#notice pre").text()?$("#notice pre").replaceWith(`<pre>${data.notice}</pre>`):$("#notice").append(`<pre>${data.notice}</pre>`)
+                    $(".notice").text(data.notice)
+                    $("#offerer").append(data.offerer);
+                    $(".offerer").val(data.offerer);
+                    $(".tel").val(data.tel);
+                    $(".wechatId").val(data.wechatId);
+                    $("#wechatId").append(data.wechatId)
+                    $("#tel").append(data.tel)
+                    $("#notes pre").text()?$("#notes pre").replaceWith(`<pre>${data.notes}</pre>`):$("#notes").append(`<pre>${data.notes}</pre>`)
+                    $('.notes').text(data.notes);
+                    $(".price").val(data.price);
+                    $("#name").val(data.name);
+                    $("#select").val(data.sex);
+                    $(".coverPhoto").attr({'src':data.url});
+                    $(".coverIcon").append(data.name+sex[data.sex-1]);
+                    //$(".coverIcon").append(data.sex)
+               };
+               /* 点击保存 */
+               $("#saveBtn").on('click',function(){
+                    var reg = RegExp(/http:/);
+                    let data={
+                        inClude:$(".inClude").val(),
+                        outClude:$(".outClude").val(),
+                        remark:$(".remark").val(),
+                        notice:$(".notice").val(),
+                        notes:$(".notes").val(),
+                        price:$(".price").val(),
+                        sex:$("#select").val(),
+                        name:$("#name").val(),
+                        offerer:$(".offerer").val(),
+                        tel:$(".tel").val(),
+                        wechatId:$(".wechatId").val(),
+                        price:$(".price").val(),
+                        travelId:$("#travelId").val(),
+                        pdfId:$("#pdfId").val(),
+                        url:$(".coverPhoto").attr('src').match(reg)?$(".coverPhoto").attr('src'):0
+                    };
+                    editExplain(data);
+                    renderExplain(data);
+                    $('.cancel').trigger('click');
+
+               });
+               /* 上传图片 */
+               $("#doc").on('change',function(e){
+                //console.log(e)
+                let file = e.target.files[0] || e.target.files;
+                let reader = new FileReader();
+                reader.onload = e => {
+                    var path = e.target.result;
+                    $(".url").attr({'src':path})
+                };
+                let files = file;
+                reader.readAsDataURL(file);
+                let formData = new FormData(); //创建form对象
+                formData.append("logoImg", files); //通过append向form对象添加数据
+                formData.append("name",files.name); //通过append向form对象添加数据
+                //console.log('formData',formData)
+                $.ajax({
+                        url:'/transfer/manage/imgLib',
+                        method:'POST',
+                        data:formData,
+                        processData : false, 
+                        contentType : false,
+                        success:function(data){
+                            $(".coverPhoto").attr({'src':data.items[0].destUrl});                            
+                        }
+                    })
+               });
+               
+        })
+    
+    
+    
+        </script>
+</head>
+<body>
+    <div class="bookBox">
+        <!-- 分享弹框  -->
+        <div class="dialog">
+            <div class="share_content">
+                <div class="share_head">
+                    <div class="share_left">
+                        <img src="/static/images/img_lian.png" alt="">
+                        <p class="share_text">分享网址</p>
+                    </div>
+                    <div class="share_cacel">
+                        <img src="/static/images/img_close.png" alt="">
+                    </div>
+                </div>
+                <ul class="share_middle">
+                    <li>
+                        <img src="/static/images/img_icon.png" alt="">
+                        <p>路书已成功生成</p>
+                    </li>
+                    <li>
+                        <input type="text" class="input_lian" id="input_lian">
+                        <input type="button" value="复制链接" class="copy_btn"/>
+                    </li>
+                    <li>复制上方链接，发送给您的客人</li>
+                    <li>
+                        <img src="/static/images/img_QR.png" alt="">
+                        <p>路书二维码</p>
+                    </li>
+                    <li>微信扫描二维码，将行程分享给客人</li>
+                    <li>
+                        <div id="qrcode" style="width:100px; height:100px; margin-left:202px;margin-top: 15px;"></div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- 封面---行程编辑---PDF导出 -->
+        <div class="operatorBtn">
+            <div class="export">
+                <img src="/static/images/bookSeePdf.png" alt="">
+                <p>PDF导出</p>
+            </div>
+            <div class="shareBtn">
+                <!-- <img src="/static/images/img_share.png" alt=""> -->
+                <img src="/static/images/img_share.png" alt="">
+                <p>分享链接</p>
+            </div>
+            <div class="editBtn">
+                <img src="/static/images/bookEditIcon.png" alt="">
+                <p>路书说明</p>
+            </div>
+            
+        </div>
+        <!-- 左右两个箭头 -->
+        <img src="/static/images/turnPageL.png" alt="" id="back" class="controlArrow">
+        <img src="/static/images/turnPageR.png" alt="" id="next" class="controlArrow rightArrow">
+        <input type="hidden" id="travelId" value="{{newData.travel.id}}">
+        <input type="hidden" id="pdfId" value="">
+        <div class="wowbook-lightbox lightbox-html">
+            <div class="wowbook-book-container">
+                <div id="mybook">
+                    <!--首屏 开始-->
+                    <div class="pageBox firstPage">
+                        <div class="clearfix">
+                            <span class="halvingLine pull-left"></span>
+                            <!-- <div class="pull-right bookTime">
+                                <p>
+                                    <span class="inlineBlock">{{newData.travel.travelTime}}</span>-
+                                    <span class="inlineBlock">{{newData.travel.backtravelTime}}</span>
+                                </p>
+                            </div> -->
+                        </div>
+                        <div class="clearfix" style="padding-bottom: 40px;">
+                            <img src="/static/images/previewCover.png" class="previewCover" alt="">
+                            
+                            <span class="coverIcon">谨呈</span>
+                            <p class="inlineBlock pull-left">{{newData.travel.travelName}}</p>
+                        </div>
+                        <img src="{{newData.travel.url}}" alt="" class="coverPhoto">
+                        <!--封面图-->
+                        <p class="travelNum">
+                            <span class="inlineBlock">第{{newData.travel.id}} 号</span>
+                        </p>
+                        <!--行程编号-->
+                        <img src="/static/images/logo.png" alt="" class="turnPageLogo">
+                    </div>
+                    <!--首屏 结束-->
+                    <!--行程目录 开始-->
+                    <div class="pageBox catalog">
+                        <!--页眉-->
+                        <div class="clearfix headerIcon">
+                            <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                            <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+                        </div>
+                        <div class="tableBox">
+                            <table class="travelMenu">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <p></p>
+                                        </th>
+                                        <th>
+                                            <p class="travelDate">日期
+                                                <span>Date</span>
+                                            </p>
+                                        </th>
+                                        <th>
+                                            <p class="arrivalCity">城市
+                                                <span>City</span>
+                                            </p>
+                                        </th>
+                                        <th>
+                                            <p class="travelTime">页码
+                                                <span>Days</span>
+                                            </p>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in newData.items  %}
+                                    <tr>
+                                        <td class="daysBox">
+                                            <p class="travelDays">D{{loop.index}}</p>
+                                        </td>
+                                        <td>
+                                            <p class="travelDate">{{item.date}}</p>
+                                        </td>
+                                        <td>
+                                            {% if item.day.traveldayName %}
+                                            <p class="arrivalCity">{{item.day.traveldayName}}</p>
+                                            {% else %}
+                                            <p class="arrivalCity">暂无</p>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <p class="travelTime">P{{loop.index}}</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <img class="img_white" src="/static/images/img_white.png" alt="">
+                    </div>
+                    
+                    <!--行程目录 结束-->
+                    <!--详细行程 开始-->
+                    {% for item in newData.items %}
+                    <div class="pageBox travelDetail">
+                        <!--页眉-->
+                        <div class="clearfix headerIcon">
+                            <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                            <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+                        </div>
+                        <div class="itineraryBox tableBox">
+                            <div class="w540">
+                                {% if loop.index % 2 >0 %}
+                                <div class="clearfix" style="position: relative;right: -60px;text-align: right;">
+                                    
+                                    <p class="fl times cityName">{{item.day.traveldayName}}</p>
+                                    <p class=" times" style="display:inline-block;padding-right: 20px;">{{item.date}}</p>
+                                    <h3 class="fr rectangular_2 days" style="margin-right:0;">D{{loop.index}}</h3>
+                                </div>
+                                {% else %}
+                                <div class="clearfix">
+                                    <h3 class="fl rectangular days">D{{loop.index}}</h3>
+                                    <p class="pull-left times">{{item.date}}</p>
+                                    <p class="pull-right times cityName">{{item.day.traveldayName}}</p>
+                                </div>
+                                {% endif %}
+                                <div class="travelBox">
+                                    {% if item.eventVoList && item.eventVoList.length>0 %}
+                                    <img src="{{item.eventVoList[0].poi.url}}" alt="" class="travelImg">
+                                    {% else %}
+                                    <img src="/static/images/tripBookCover.png" alt="" class="travelImg">
+                                    {% endif %}
+                                    {% if item.eventVoList %}
+                                    <ul class="clearfix travelList">
+                                        {% for even in item.eventVoList %}
+                                        <li>
+                                            <h2 class="travelTit">游玩</h2>
+                                            <div>
+                                                <h3 class="listName">名称</h3>
+                                                <p class="listInfo" title="">{{even.poi.cnName}}</p>
+                                            </div>
+                                            <div>
+                                                <h3 class="listName">开放时间</h3>
+                                                <p class="listInfo">{{even.poi.openTime}}</p>
+                                            </div>
+                                            <div>
+                                                <h3 class="listName">地址</h3>
+                                                <p class="listInfo" title="">{{even.poi.address}}</p>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <!--页脚-->
+                        <div class="pageFooter">{{newData.travel.travelName}}
+                            <p>
+                                <i>／</i>
+                                <b>{{loop.index}}</b>
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <!--详细行程 结束-->
+                    <!--费用说明 费用包含不包含 开始-->
+                    <div class="pageBox">
+                        <!--页眉-->
+                        <div class="clearfix headerIcon">
+                            <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                            <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+                        </div>
+                        <div class="feeDescription tableBox">
+                            <div class="w480">
+                                <div class="feeParagraph" id="inClude">
+                                    <h2 class="feeTitle">费用包含</h2>
+                                </div>
+
+                                <div class="feeParagraph" id="outClude">
+                                    <h2 class="feeTitle">费用不包含</h2>
+                                </div>
+
+                                <div class="feeParagraph" id="remark">
+                                    <h2 class="feeTitle">备注</h2>
+                                </div>
+                            </div>
+                            <div>
+                                <img class="img_white" src="/static/images/img_white.png" alt="" />
+                            </div>
+                        </div>
+                        
+                        <!--页脚-->
+                        <div class="pageFooter">{{newData.travel.travelName}}
+                            <p>
+                                <i>／</i>
+                                <b>{{newData.items.length+1}}</b>
+                            </p>
+                        </div>
+                    </div>
+                    <!--费用说明 费用包含不包含 结束-->
+
+                    <!--费用说明 注意事项 开始-->
+                    <div class="pageBox">
+                        <!--页眉-->
+                        <div class="clearfix headerIcon">
+                            <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                            <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+                        </div>
+<!--                         <p class="rectangular marginBot"></p>
+ -->                        <div class="feeDescription tableBox">
+                            <div class="w480">
+                                <div class="feeParagraph marginStyle" id="notice">
+                                    <h2 class="feeTitle">注意事项</h2>
+                                     <h3>病患者、孕妇及行动不便者：</h3>
+                                </div>
+                            </div>
+
+                        </div>
+                        <!--页脚-->
+                        <div class="pageFooter">{{newData.travel.travelName}}
+                            <p>
+                                <i>／</i>
+                                <b>{{newData.items.length+2}}</b>
+                            </p>
+                        </div>
+                    </div>
+                    <!--费用说明 注意事项 结束-->
+                    <!--封底 开始-->
+                    <div class="pageBox">
+                        <div class="leaveMessage" id="notes">
+                            <div class="remarks">
+                                <img src="/static/images/remarks.png" alt="">
+                                <p>记录你的旅行故事吧</p>
+                            </div>
+                        </div>
+                        <h3 class="publicity">够旅游，让旅途更美好！</h3>
+                        <div class="tenderer">
+                            <p id="offerer">
+                                <span>报价人：</span></p>
+                            <p id="wechatId">
+                                <span>微信：</span></p>
+                            <p id="tel">
+                                <span>咨询电话：</span></p>
+                        </div>
+                    </div>
+                    <!--封底 结束-->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="models">
+        <div class="contentBox">
+            <ul class="modelTab" role="tablist">
+                <li role="presentation" class="active">
+                    <a href="#home" aria-controls="home" role="tab" data-toggle="tab">基础信息</a>
+                </li>
+                <li role="presentation">
+                    <a href="#messages" aria-controls="messages" role="tab" data-toggle="tab">费用包含</a>
+                </li>
+                <li role="presentation">
+                    <a href="#settings" aria-controls="settings" role="tab" data-toggle="tab">费用不包含</a>
+                </li>
+                <li role="presentation">
+                    <a href="#attention" aria-controls="settings" role="tab" data-toggle="tab">注意事项</a>
+                </li>
+                <li role="presentation">
+                    <a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">旅行笔记</a>
+                </li>
+                <li role="presentation">
+                    <a href="#coverPic" aria-controls="profile" role="tab" data-toggle="tab">封面图片</a>
+                </li>
+            </ul>
+            <!-- Tab panes -->
+            <div class="tab-content">
+                <!--基础信息 开始-->
+                <div role="tabpanel" class="tab-pane active" id="home">
+                    <!--客户信息-->
+                    <div>
+                        <div style="margin-right:15px;font-size:14px;display: inline-block;">
+                            <p class="userFillInfo">客户姓名</p>
+                            <input type="text" placeholder="请输入客户姓名" class="fillInput name" id="name">
+                        </div>
+                        <div style="font-size:14px;display: inline-block;">
+                            <p class="userFillInfo">客户性别</p>
+                            <select name="" id="select" class="fillInput">
+                                <option value="1">先生</option>
+                                <option value="2">女士</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!--报价人-->
+                    <div>
+                        <div style="margin-right:15px;font-size:14px;display: inline-block;">
+                            <p class="userFillInfo marginT">报价人</p>
+                            <input type="text" placeholder="请输入报价人" class="fillInput offerer">
+                        </div>
+                        <div style="margin-right:15px;font-size:14px;display: inline-block;">
+                            <p class="userFillInfo marginT">咨询电话</p>
+                            <input type="text" placeholder="请输入咨询电话" class="fillInput tel">
+                        </div>
+                        <div style="font-size:14px;display: inline-block;">
+                            <p class="userFillInfo marginT">微信号</p>
+                            <input type="text" placeholder="请输入微信号" class="fillInput wechatId">
+                        </div>
+                    </div>
+                    <!--备注内容-->
+                    <div>
+                        <p style="color:rgb(76,94,128);margin-bottom: 5px;margin-top:25px;">备注内容</p>
+                        <textarea name="" placeholder="请输入备注内容" class="fillTextarea remark" style="height:113px;"></textarea>
+                    </div>
+                </div>
+                <!--基础信息 结束-->
+
+                <!--费用包含 开始-->
+                <div role="tabpanel" class="tab-pane" id="messages">
+                    <h2 style="font-size:16px;font-weight: bold;color:rgb(76,94,128);margin-bottom:12px;">费用包含</h2>
+                    <textarea name="" class="fillTextarea inClude"></textarea>
+                </div>
+                <!--费用包含 结束-->
+
+                <!--费用不包含 开始-->
+                <div role="tabpanel" class="tab-pane" id="settings">
+                    <h2 style="font-size:16px;font-weight: bold;color:rgb(76,94,128);margin-bottom:12px;">费用不含</h2>
+                    <textarea name="" class="fillTextarea outClude"></textarea>
+                </div>
+                <!--费用不包含 结束-->
+
+                <!--注意事项 开始-->
+                <div role="tabpanel" class="tab-pane" id="attention">
+                    <h2 style="font-size:16px;font-weight: bold;color:rgb(76,94,128);margin-bottom:12px;">注意事项</h2>
+                    <textarea name="" class="fillTextarea notice"></textarea>
+                </div>
+                <!--注意事项 结束-->
+                <!--旅行笔记 开始-->
+                <div role="tabpanel" class="tab-pane" id="profile">
+                    <h2 style="font-size:16px;font-weight: bold;color:rgb(76,94,128);margin-bottom:12px;">旅行笔记</h2>
+                    <textarea name="" class="fillTextarea notes"></textarea>
+                </div>
+                <!--旅行笔记 结束-->
+
+                <!--封面图片 开始-->
+                <div role="tabpanel" class="tab-pane" id="coverPic">
+                    <p class="coverPicTit">封面图
+                        <span>请上传16：9图片，最佳尺寸（500px * 280px）</span>
+                    </p>
+                    <div class="upCoverPic">
+                        <img class="url" src="/static/images/upCoverPic.jpg" alt="">
+                    </div>
+                    <div class="typeImage">
+                        <span>更换</span>   
+                        <input class="file" name="file" type="file" accept="image/png,image/jpg,image/gif,image/jpeg"  id="doc"/>
+                    </div>
+                    <!-- <form class="typeImage" method="post" enctype="multipart/form-data">
+                        <span>更换</span>
+                        <input type="file" name="file" id="doc" data-url="/transfer/manage/imgLib">
+                    </form> -->                    
+                </div>
+                <!--封面图片 结束-->
+            </div>
+            <!--价格-->
+            <div style="padding:20px 0;border-top: 1px solid #e4eaf0;margin-top: 20px;">
+                <div style="width:50%;display: inline-block;">
+                    <h3 style="font-size:16px;color:#3d434c;display: inline-block;">总价：</h3>
+                    <div style="border:1px solid rgb(228,234,240);padding:5px 0;padding-right:10px;display: inline-block;">
+                        <input class="price" style="width:80px;font-size:18px;;border-right: 1px solid rgb(228,234,240);display:inline-block;padding-left:10px;margin-right:10px;" value="0">元
+                    </div>
+                </div>
+                <div style="text-align: right;width:49%;display: inline-block;">
+                    <span style="font-size:16px;color:rgb(30,144,229);cursor:pointer;display: inline-block;" class="cancel">取消</span>
+                    <button id="saveBtn" style="width:98px;height:35px;font-size:16px;font-family:'Microsoft yahei';margin-left:20px;background:rgb(30,144,229);color:rgb(255,255,255);border-radius:6px;border:none;">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="mybook1" style='display: none; width: 600px; margin: 0 auto;box-shadow: 0px 0px 8px 6px rgba(0,0,0,0.2);'>
+        <!--首屏 开始-->
+        <div class="pageBox firstPage">
+            <div class="clearfix">
+                <span class="halvingLine pull-left"></span>
+                <!-- <div class="pull-right bookTime">
+                    <p>
+                        <span class="inlineBlock">{{newData.travel.travelTime}}</span>-
+                        <span class="inlineBlock">{{newData.travel.backtravelTime}}</span>
+                    </p>
+                </div> -->
+            </div>
+            <div class="clearfix" style="padding-bottom: 40px;">
+                <img src="/static/images/previewCover.png" class="previewCover" alt="">
+                
+                <span class="coverIcon">谨呈</span>
+                <p class="inlineBlock pull-left">{{newData.travel.travelName}}</p>
+            </div>
+            <img src="{{newData.travel.url}}" alt="" class="coverPhoto">
+            <!--封面图-->
+            <p class="travelNum">
+                <span class="inlineBlock">第{{newData.travel.id}} 号</span>
+            </p>
+            <!--行程编号-->
+            <img src="/static/images/logo.png" alt="" class="turnPageLogo">
+        </div>
+        <!--首屏 结束-->
+        <!--行程目录 开始-->
+        <div class="pageBox catalog">
+            <!--页眉-->
+            <div class="clearfix headerIcon">
+                <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+            </div>
+            <div class="">
+                <table class="travelMenu">
+                    <thead>
+                        <tr>
+                            <th>
+                                <p></p>
+                            </th>
+                            <th>
+                                <p class="travelDate">日期
+                                    <span>Date</span>
+                                </p>
+                            </th>
+                            <th>
+                                <p class="arrivalCity">城市
+                                    <span>City</span>
+                                </p>
+                            </th>
+                            <th>
+                                <p class="travelTime">页码
+                                    <span>Days</span>
+                                </p>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in newData.items  %}
+                        <tr>
+                            <td class="daysBox">
+                                <p class="travelDays">D{{loop.index}}</p>
+                            </td>
+                            <td>
+                                <p class="travelDate">{{item.date}}</p>
+                            </td>
+                            <td>
+                                {% if item.day.traveldayName %}
+                                <p class="arrivalCity">{{item.day.traveldayName}}</p>
+                                {% else %}
+                                <p class="arrivalCity">暂无</p>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <p class="travelTime">P{{loop.index}}</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!--行程目录 结束-->
+        <!--详细行程 开始-->
+        {% for item in newData.items %}
+        <div class="pageBox travelDetail">
+            <!--页眉-->
+            <div class="clearfix headerIcon">
+                <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+            </div>
+            <div class="itineraryBox">
+                <div class="w540">
+                    {% if loop.index % 2 >0 %}
+                    <div class="clearfix" style="position: relative;right: -60px;text-align: right;">
+                        
+                        <p class="fl times cityName">{{item.day.traveldayName}}</p>
+                        <p class=" times" style="display:inline-block;padding-right: 20px;">{{item.date}}</p>
+                        <h3 class="fr rectangular_2 days" style="margin-right:0;">D{{loop.index}}</h3>
+                    </div>
+                    {% else %}
+                    <div class="clearfix">
+                        <h3 class="fl rectangular days">D{{loop.index}}</h3>
+                        <p class="pull-left times">{{item.date}}</p>
+                        <p class="pull-right times cityName">{{item.day.traveldayName}}</p>
+                    </div>
+                    {% endif %}
+                    <div class="travelBox">
+                        {% if item.eventVoList && item.eventVoList.length>0 %}
+                        <img src="{{item.eventVoList[0].poi.url}}" alt="" class="travelImg">
+                        {% else %}
+                        <img src="/static/images/tripBookCover.png" alt="" class="travelImg">
+                        {% endif %}
+                        {% if item.eventVoList %}
+                        <ul class="clearfix travelList">
+                            {% for even in item.eventVoList %}
+                            <li>
+                                <h2 class="travelTit">游玩</h2>
+                                <div>
+                                    <h3 class="listName">名称</h3>
+                                    <p class="listInfo" title="">{{even.poi.cnName}}</p>
+                                </div>
+                                <div>
+                                    <h3 class="listName">开放时间</h3>
+                                    <p class="listInfo">{{even.poi.openTime}}</p>
+                                </div>
+                                <div>
+                                    <h3 class="listName">地址</h3>
+                                    <p class="listInfo" title="">{{even.poi.address}}</p>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <!--页脚-->
+            <!-- <div class="pageFooter">{{newData.travel.travelName}}
+                <p>
+                    <i>／</i>
+                    <b>{{loop.index}}</b>
+                </p>
+            </div> -->
+        </div>
+        {% endfor %}
+        <!--详细行程 结束-->
+        <!--费用说明 费用包含不包含 开始-->
+        <div class="pageBox">
+            <!--页眉-->
+            <div class="clearfix headerIcon">
+                <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+            </div>
+            <div class="feeDescription">
+                <div class="w480">
+                    <div class="feeParagraph" id="inClude">
+                        <h2 class="feeTitle">费用包含</h2>
+                    </div>
+
+                    <div class="feeParagraph" id="outClude">
+                        <h2 class="feeTitle">费用不包含</h2>
+                    </div>
+
+                    <div class="feeParagraph" id="remark">
+                        <h2 class="feeTitle">备注</h2>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!--页脚-->
+            <!-- <div class="pageFooter">{{newData.travel.travelName}}
+                <p>
+                    <i>／</i>
+                    <b>{{newData.items.length+1}}</b>
+                </p>
+            </div> -->
+        </div>
+        <!--费用说明 费用包含不包含 结束-->
+
+        <!--费用说明 注意事项 开始-->
+        <div class="pageBox">
+            <!--页眉-->
+            <div class="clearfix headerIcon">
+                <img src="/static/images/bookHeaderIcon.png" alt="" class="headerOne">
+                <img src="/static/images/bookHeaderIcon2.png" alt="" class="headerTwo">
+            </div>
+<!--                         <p class="rectangular marginBot"></p>
+-->                        <div class="feeDescription">
+                <div class="w480">
+                    <div class="feeParagraph marginStyle" id="notice">
+                        <h2 class="feeTitle">注意事项</h2>
+                         <h3>病患者、孕妇及行动不便者：</h3>
+                    </div>
+                </div>
+
+            </div>
+            <!--页脚-->
+            <!-- <div class="pageFooter">{{newData.travel.travelName}}
+                <p>
+                    <i>／</i>
+                    <b>{{newData.items.length+2}}</b>
+                </p>
+            </div> -->
+        </div>
+        <!--费用说明 注意事项 结束-->
+        <!--封底 开始-->
+        <div class="pageBox">
+            <div class="leaveMessage" id="notes">
+                <div class="remarks">
+                    <img src="/static/images/remarks.png" alt="">
+                    <p>记录你的旅行故事吧</p>
+                </div>
+            </div>
+            <h3 class="publicity">够旅游，让旅途更美好！</h3>
+            <div class="tenderer">
+                <p id="offerer">
+                    <span>报价人：</span></p>
+                <p id="wechatId">
+                    <span>微信：</span></p>
+                <p id="tel">
+                    <span>咨询电话：</span></p>
+            </div>
+        </div>
+        <!--封底 结束-->
+    </div>
+</div>
+</body>
+</html>
